@@ -8,7 +8,11 @@ July 9, 2024
 
 This project is meant to display typical home values for metro areas in the United States based on data from Zillow. 
 
-## To Do
+### Data Sources
+
+* Zillow Research, ZHVI All Homes (SFR, Condo/Co-op, Smoothed, Seasonally Adjusted)
+
+### To Do
 
 1. Get Zillow Data [✓]
 2. Get Matching Geodata [✓]
