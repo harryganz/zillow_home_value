@@ -36,5 +36,5 @@ ggplot() +
           aes(fill = ZHVI), linewidth = 0.05) +
   geom_sf(data = st |> st_cast("MULTILINESTRING")) +
   coord_sf(crs = original_crs, xlim = c(-125, -67), ylim = c(24, 50)) +
-  scale_fill_stepsn(breaks = seq(2e5, 1e6, 2e5), colors = terrain.colors(2), 
+  scale_fill_stepsn(breaks = seq(2e5, 1e6, 2e5), colors = terrain.colors(5), 
                     labels = scales::label_currency(scale_cut = cut_short_scale()))
