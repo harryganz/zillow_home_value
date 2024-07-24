@@ -22,4 +22,9 @@ This project is meant to display typical home values for metro areas in the Unit
     * Analyze fit of interpolation and adjust [✗]
 6. Graph [✓]
 
+## Requirements
+
+* R >= 4.4.1
+* magick (for gif rendering)
+
 

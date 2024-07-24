@@ -64,27 +64,37 @@ trans <- function(sf, degree = 0, scale = 1.0 , dx = 0, dy = 0) {
 ak_trans <- function(x)trans(x, -10, 0.4, 0.75e6, -5.2e6)
 hi_trans <- function(x)trans(x, 0, 1, 3.5e6, -1.5e6)
 
+housing_data_plot_fn <- function(dates) {
+  function() {
+    ggplot() +
+      geom_sf(data = st_cus, fill = "grey70") +
+      geom_sf(data = ak_trans(st_ak), fill = "grey70") +
+      geom_sf(data = hi_trans(st_hi), fill = "grey70") +
+      geom_sf(data = co_home_values_cus |> filter(Date %in% dates), aes(fill = ZHVI), linewidth = 0.05) +
+      geom_sf(data = ak_trans(co_home_values_ak) |> filter(Date %in% dates), aes(fill = ZHVI)) +
+      geom_sf(data = hi_trans(co_home_values_hi) |> filter(Date %in% dates), aes(fill = ZHVI)) +
+      coord_sf(xlim = c(-124, -68), crs = original_crs) +
+      scale_fill_stepsn("Typical Home Value", breaks = seq(2e5, 1e6, 2e5), 
+                        colors = terrain.colors(5), na.value = "grey70",
+                        labels = scales::label_currency(scale_cut = cut_short_scale())) +
+      theme_void() +
+      theme(plot.title = element_text(size = unit("16", "pt"), hjust = 1.0), plot.margin = unit(rep(0.25, 4), "in"))
+  }
+}
 
-p <- ggplot() +
-  geom_sf(data = st_cus, fill = "grey70") +
-  geom_sf(data = ak_trans(st_ak), fill = "grey70") +
-  geom_sf(data = hi_trans(st_hi), fill = "grey70") +
-  geom_sf(data = co_home_values_cus, aes(fill = ZHVI), linewidth = 0.05) +
-  geom_sf(data = ak_trans(co_home_values_ak), aes(fill = ZHVI)) +
-  geom_sf(data = hi_trans(co_home_values_hi) ,aes(fill = ZHVI)) +
-  coord_sf(crs = original_crs, xlim = c(-124, -68)) +
-  scale_fill_stepsn("Typical Home Value", breaks = seq(2e5, 1e6, 2e5), 
-                    colors = terrain.colors(5), na.value = "grey70",
-                    labels = scales::label_currency(scale_cut = cut_short_scale())) +
+# Graph static images
+home_values |>
+  pluck("Date", .default = c()) |>
+  unique() |>
+  map(~ list(year = year(.x), p = housing_data_plot_fn(.x)() + labs(title = year(.x)))) |>
+  map(~ ggsave(paste0("./figures/zhvi_", .x[['year']], ".png"), plot = .x[['p']], width = 1200, height = 1200, units = "px", dpi = 150))
+
+# Create gif version
+p <- housing_data_plot_fn(unique(home_values$Date))() +
   labs(title = 'Year: {floor(frame_time)}') +
   transition_time(year(Date)) +
-  ease_aes('linear') +
-  theme_void() +
-  theme(plot.title = element_text(size = unit("16", "pt"), hjust = 1.0), plot.margin = unit(rep(0.25, 4), "in"))
+  ease_aes('linear')
 
-
-
-animate(p, width = 1000, height = 1000, units = "px", nframes = 200, start_pause = 20, end_pause = 50)
-
-anim_save("./figures/zhvi.gif")
+animate(p, nframes = 200, fps = 10, start_pause = 30, end_pause = 30, 
+          width = 700, height = 700, units = "px", dpi = 72, renderer = gifski_renderer(file = "./figures/zhvi.gif")) 
 
