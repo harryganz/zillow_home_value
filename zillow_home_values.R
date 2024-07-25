@@ -98,3 +98,57 @@ p <- housing_data_plot_fn(unique(home_values$Date))() +
 animate(p, nframes = 200, fps = 10, start_pause = 30, end_pause = 30, 
           width = 700, height = 700, units = "px", dpi = 72, renderer = gifski_renderer(file = "./figures/zhvi.gif")) 
 
+create_label <- function(x) {
+  isNeg <- x < 0
+  x <- abs(x)
+  paste0(
+  ifelse(isNeg, "-", ""),
+  case_when(
+    x < 1e3 ~ paste0("$", round(x)),
+    x < 1e6 ~ paste0("$", round(x/1000, 1), "K"),
+    x < 1e9 ~ paste0("$", format(round(x/1e6, 1), big.mark = ","), "M"),
+    .default = as.character(x)
+  ))
+}
+## Plot the most expensive and cheapest counties
+home_values |>
+  filter(Date == as.Date('2024-01-31')) |>
+  select(RegionID, RegionName, StateName, ZHVI) |>
+  mutate(County = paste0(RegionName, ", ", StateName)) |>
+  arrange(ZHVI) |>
+  slice(c(1:5, (n()-4):n())) |>
+  mutate(County = reorder(County, ZHVI)) |>
+  rename(`Typical Home Value` = ZHVI) |>
+  ggplot(aes(x = County, y = `Typical Home Value`)) +
+  geom_bar(stat = 'identity', aes(fill = `Typical Home Value`)) +
+  geom_label(aes(label = create_label(`Typical Home Value`)), hjust = 0, label.size = 0) +
+  expand_limits(y = 3e6) +
+  coord_flip() +
+  scale_y_continuous(labels = scales::label_currency(scale_cut = cut_short_scale())) +
+  scale_fill_gradient(guide = "none", low = muted("red"), high = muted("blue")) +
+  theme_light()
+
+ggsave(filename = './figures/home_values.png', height = 1000, width = 1200, units = "px", dpi = 150)
+
+## Plot smallest and largest differences in price since 2010
+home_values |>
+  mutate(Year = year(Date)) |>
+  select(!Date) |>
+  filter(Year %in% c(2010, 2024)) |>
+  pivot_wider(names_from = Year, values_from = ZHVI) |>
+  filter(!is.na(`2024`) & !is.na(`2010`)) |>
+  mutate(`County` = paste0(RegionName, ", ", StateName)) |>
+  mutate(`Home Value Change (2010-2024)` = `2024` - `2010`) |>
+  arrange(`Home Value Change (2010-2024)`) |>
+  slice(c(1:5, (n()-4):n())) |>
+  mutate(County = reorder(County, `Home Value Change (2010-2024)`)) |>
+  ggplot(aes(County, `Home Value Change (2010-2024)`)) +
+  geom_bar(aes(fill = `Home Value Change (2010-2024)`), stat = "identity") +
+  geom_label(aes(label = create_label(`Home Value Change (2010-2024)`)), hjust = "outward", label.size = 0) +
+  expand_limits(y = c(-2e5, 1.8e6)) +
+  coord_flip() +
+  scale_fill_gradient(guide = "none", low = muted("red"), high = muted("blue")) +
+  scale_y_continuous(labels = scales::label_currency(scale_cut = cut_short_scale())) +
+  theme_light() 
+ggsave(filename = './figures/home_value_change.png', height = 1000, width = 1200, units = "px", dpi = 150)
+
